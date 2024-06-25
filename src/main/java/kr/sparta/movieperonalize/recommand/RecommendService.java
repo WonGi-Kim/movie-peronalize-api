@@ -2,6 +2,7 @@ package kr.sparta.movieperonalize.recommand;
 
 import jakarta.annotation.PostConstruct;
 import kr.sparta.movieperonalize.recommand.dto.MovieDto;
+import kr.sparta.movieperonalize.recommand.enumtype.MovieCountry;
 import kr.sparta.movieperonalize.recommand.enumtype.MovieGenre;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,6 +70,18 @@ public class RecommendService {
                 .retrieve()
                 .bodyToFlux(MovieDto.class)
                 .filter(movieDto -> movieDto.getId().equals(movieNo))
+                .retryWhen(Retry.backoff(3, Duration.ofMinutes(500)))
+                .timeout(Duration.ofSeconds(3));
+    }
+
+    public Flux<MovieDto> getMoviesByCountry(MovieCountry country) {
+        final String movieInfoByGenreUri = movieInfoApiUriComponent.expand(country).toUriString();
+
+        return webClient.get()
+                .uri(movieInfoByGenreUri)
+                .retrieve()
+                .bodyToFlux(MovieDto.class)
+                .filter(movieDto -> movieDto.getCountry().contains(country.getCountry()))
                 .retryWhen(Retry.backoff(3, Duration.ofMinutes(500)))
                 .timeout(Duration.ofSeconds(3));
     }
