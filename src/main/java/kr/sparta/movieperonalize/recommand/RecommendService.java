@@ -49,4 +49,27 @@ public class RecommendService {
                 .retryWhen(Retry.backoff(3, Duration.ofMinutes(500)))
                 .timeout(Duration.ofSeconds(3));
     }
+
+    public Flux<MovieDto> getMovies() {
+        final String movieInfoUri = movieInfoApiUriComponent.expand().toUriString();
+
+        return webClient.get()
+                .uri(movieInfoUri)
+                .retrieve()
+                .bodyToFlux(MovieDto.class)
+                .retryWhen(Retry.backoff(3, Duration.ofMinutes(500)))
+                .timeout(Duration.ofSeconds(3));
+    }
+
+    public Flux<MovieDto> getMovieByMovieNo(Long movieNo) {
+        final String movieInfoByMovieNoUri = movieInfoApiUriComponent.expand(movieNo).toUriString();
+
+        return webClient.get()
+                .uri(movieInfoByMovieNoUri)
+                .retrieve()
+                .bodyToFlux(MovieDto.class)
+                .filter(movieDto -> movieDto.getId().equals(movieNo))
+                .retryWhen(Retry.backoff(3, Duration.ofMinutes(500)))
+                .timeout(Duration.ofSeconds(3));
+    }
 }

@@ -21,4 +21,14 @@ public class RecommendController {
     public Flux<MovieDto> getMoviesByGenre(@PathVariable MovieGenre genre) {
         return recommendService.getMoviesByGenre(genre);
     }
+
+    @GetMapping("/movies")
+    public Flux<MovieDto> getMovies() {
+        return recommendService.getMovies();
+    }
+
+    @GetMapping("/movies/{movieNo}")
+    public Flux<MovieDto> getMoviesByMovieNo(@PathVariable Long movieNo) {
+        return recommendService.getMovieByMovieNo(movieNo);
+    }
 }
