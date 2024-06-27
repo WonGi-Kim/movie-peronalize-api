@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1")
 public class RecommendController {
@@ -24,7 +26,7 @@ public class RecommendController {
     }
 
     @GetMapping("/movies")
-    public Flux<MovieDto> getMovies() {
+    public List<MovieDto> getMovies() {
         return recommendService.getMovies();
     }
 
