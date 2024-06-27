@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -45,17 +46,48 @@ public class RecommendService {
                 .build();
     }
 
-    public Flux<MovieDto> getMoviesByGenre(MovieGenre movieGenre) {
-        final String movieInfoByGenreUri = movieInfoApiUriComponent.expand(movieGenre).toUriString();
+    // 캐싱된 목록에서 요청한 장르를 추출할 수 있도록 수정하세요
+    public List<MovieDto> getMoviesByGenre(MovieGenre movieGenre) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start("Api - Redis 응답 속도 차이");
 
-        return webClient.get()
-                .uri(movieInfoByGenreUri)
-                .retrieve()
-                .bodyToFlux(MovieDto.class)
-                .filter(movieDto -> movieDto.getGenre().contains(movieGenre.getKorean()))
-                .retryWhen(Retry.backoff(3, Duration.ofMinutes(500)))
-                .timeout(Duration.ofSeconds(3));
+        final String key = "movies";  // Redis에 저장된 키
+        List<MovieDto> cachedMovies = redisTemplate.opsForValue().get(key);
+
+        List<MovieDto> result = new ArrayList<>();
+
+        if (cachedMovies == null) {
+            // Redis에 캐시된 목록이 없으면 API 호출
+            final String movieInfoByGenreUri = movieInfoApiUriComponent.expand(movieGenre).toUriString();
+
+            cachedMovies = webClient.get()
+                    .uri(movieInfoByGenreUri)
+                    .retrieve()
+                    .bodyToFlux(MovieDto.class)
+                    .collectList()
+                    .block();
+
+            if (cachedMovies != null) {
+                // API에서 가져온 목록을 Redis에 저장
+                redisTemplate.opsForValue().setIfAbsent(key, cachedMovies, 30, TimeUnit.SECONDS);
+            }
+        }
+
+        // 요청한 장르에 맞는 영화만 result에 추가
+        if (cachedMovies != null) {
+            for (MovieDto movie : cachedMovies) {
+                if (movie.getGenre().contains(movieGenre.getKorean())) {
+                    result.add(movie);
+                }
+            }
+        }
+
+        stopWatch.stop();
+        log.info(stopWatch.prettyPrint(TimeUnit.MILLISECONDS));
+
+        return result;
     }
+
 
     // 영화 전체 목록 API 응답을 레디스에 저장할 수 있도록 변경
     public List<MovieDto> getMovies() {

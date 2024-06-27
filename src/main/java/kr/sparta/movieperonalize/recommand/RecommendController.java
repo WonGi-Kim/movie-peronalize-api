@@ -21,7 +21,7 @@ public class RecommendController {
     }
 
     @GetMapping("/movies/genre/{genre}")
-    public Flux<MovieDto> getMoviesByGenre(@PathVariable MovieGenre genre) {
+    public List<MovieDto> getMoviesByGenre(@PathVariable MovieGenre genre) {
         return recommendService.getMoviesByGenre(genre);
     }
 
